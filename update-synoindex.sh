@@ -32,19 +32,19 @@
 #function to set the environment
 #---------------------------------------------
 set_environment(){
-	ALL_EXT="ASF AVI DIVX IMG ISO M1V M2P M2T M2TS M2V M4V MKV MOV MP4 MPEG4 MPE MPG MPG4 MTS QT RM TP TRP TS VOB WMV XVID"
-	
-	CONFIG_DIR=$(dirname $0)"/config"
-	
-	if [[ ! -d "$CONFIG_DIR" ]]; then
-		mkdir "$CONFIG_DIR"
-	fi
-	
-	FICH_CONF="$CONFIG_DIR/update-synoindex-conf.txt"
+    ALL_EXT="ASF AVI DIVX IMG ISO M1V M2P M2T M2TS M2V M4V MKV MOV MP4 MPEG4 MPE MPG MPG4 MTS QT RM TP TRP TS VOB WMV XVID"
 
-	if [[ ! -f "$FICH_CONF" ]]; then
-		#insert into file default values
-		echo "#extensions
+    CONFIG_DIR=$(dirname $0)"/config"
+    
+    if [[ ! -d "$CONFIG_DIR" ]]; then
+        mkdir "$CONFIG_DIR"
+    fi
+    
+    FICH_CONF="$CONFIG_DIR/update-synoindex-conf.txt"
+
+    if [[ ! -f "$FICH_CONF" ]]; then
+        #insert into file default values
+        echo "#extensions
 $ALL_EXT
 #Modified time --> none or \"command find time\" --> 24 hours example = \"-mtime 0\" ----> 1 hour = \"-mmin -60\"
 none
@@ -54,23 +54,23 @@ none
 1 /volume1
 1 /volume1
 1 /volume1" > "$FICH_CONF"
-		exit
-	fi
+        exit
+    fi
 
-	#flag for read extensions, time for find and user for find from file FICH_CONF
-	READ_EXT=0
-	READ_TIME=0
-	READ_USER=0
+    #flag for read extensions, time for find and user for find from file FICH_CONF
+    READ_EXT=0
+    READ_TIME=0
+    READ_USER=0
 }
 
 #---------------------------------------------
 #function to extract the extension of a path
 #---------------------------------------------
 extension(){
-	FICH_EXT=${FICH_MEDIA##*.}
-	
-	#convert to uppercase the extension
-	FICH_EXT=$(echo $FICH_EXT | tr 'a-z' 'A-Z')
+    FICH_EXT=${FICH_MEDIA##*.}
+    
+    #convert to uppercase the extension
+    FICH_EXT=$(echo $FICH_EXT | tr 'a-z' 'A-Z')
 }
 
 
@@ -78,13 +78,13 @@ extension(){
 #function to check it is a treatable extension
 #---------------------------------------------
 check_extension(){
-	if echo "$ALL_EXT" | grep -q "$FICH_EXT"; then
-		TREATABLE=1
-	else
-		TREATABLE=0
-	fi
-	
-	return "$TREATABLE"
+    if echo "$ALL_EXT" | grep -q "$FICH_EXT"; then
+        TREATABLE=1
+    else
+        TREATABLE=0
+    fi
+    
+    return "$TREATABLE"
 }
 
 
@@ -92,12 +92,12 @@ check_extension(){
 #function to check if directory is in the DB
 #---------------------------------------------
 search_directory_DB(){
-	PATH_MEDIA=${FICH_MEDIA%/*}
-	PATH_MEDIA=$(echo $PATH_MEDIA | tr 'A-Z' 'a-z')
+    PATH_MEDIA=${FICH_MEDIA%/*}
+    PATH_MEDIA=$(echo $PATH_MEDIA | tr 'A-Z' 'a-z')
 
-	TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from directory where lower(path) like '%$PATH_MEDIA%'"`
-	
-	return "$TOTAL"
+    TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from directory where lower(path) like '%$PATH_MEDIA%'"`
+    
+    return "$TOTAL"
 }
 
 
@@ -105,11 +105,11 @@ search_directory_DB(){
 #function to check if file is in the DB
 #---------------------------------------------
 search_file_DB(){
-	FICH_MEDIA=$(echo $FICH_MEDIA | tr 'A-Z' 'a-z')
+    FICH_MEDIA=$(echo $FICH_MEDIA | tr 'A-Z' 'a-z')
 
-	TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from video where lower(path) like '%$FICH_MEDIA%'"`
-	
-	return "$TOTAL"
+    TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from video where lower(path) like '%$FICH_MEDIA%'"`
+    
+    return "$TOTAL"
 }
 
 
@@ -118,9 +118,9 @@ search_file_DB(){
 #---------------------------------------------
 add_directory_DB(){
 
-	synoindex -A "$PATH_MEDIA"
+    synoindex -A "$PATH_MEDIA"
 #echo "added directory to DB --> $PATH_MEDIA"
-	sleep 5
+    sleep 5
 }
 
 
@@ -129,7 +129,7 @@ add_directory_DB(){
 #---------------------------------------------
 add_file_DB(){
 
-	synoindex -a "$FICH_MEDIA"
+    synoindex -a "$FICH_MEDIA"
 #echo "added file to DB --> $FICH_MEDIA"
 }
 
@@ -138,12 +138,12 @@ add_file_DB(){
 #function to treat directories
 #---------------------------------------------
 treat_directories(){
-	search_directory_DB
-	
-	SEARCH_RETVAL=$?
-	if [ "$SEARCH_RETVAL" == 0 ]; then
-		add_directory_DB
-	fi
+    search_directory_DB
+    
+    SEARCH_RETVAL=$?
+    if [ "$SEARCH_RETVAL" == 0 ]; then
+        add_directory_DB
+    fi
 }
 
 
@@ -151,19 +151,19 @@ treat_directories(){
 #function to treat files
 #---------------------------------------------
 treat_files(){
-	extension
-	check_extension
-	
-	EXT_RETVAL=$?
-	if [ "$EXT_RETVAL" == 1 ]; then
-		search_file_DB
-		SEARCH_RETVAL=$?
-		
-		if [ "$SEARCH_RETVAL" == 0 ]; then
-			treat_directories
-			add_file_DB
-		fi
-	fi
+    extension
+    check_extension
+    
+    EXT_RETVAL=$?
+    if [ "$EXT_RETVAL" == 1 ]; then
+        search_file_DB
+        SEARCH_RETVAL=$?
+        
+        if [ "$SEARCH_RETVAL" == 0 ]; then
+            treat_directories
+            add_file_DB
+        fi
+    fi
 }
 
 
@@ -171,77 +171,77 @@ treat_files(){
 #function for the main program
 #---------------------------------------------
 treatment(){
-	#read file FICH_CONF
-	while read LINE || [ -n "$LINE" ]; do
+    #read file FICH_CONF
+    while read LINE || [ -n "$LINE" ]; do
 
-		#skip comment and blank lines
-		case "$LINE" in \#*) continue ;; esac
-		[ -z "$LINE" ] && continue
-		
-		#read the extensions from file
-		if [[ "$READ_EXT" -eq 0 ]]; then
-			
-			ALL_EXT=$LINE
-			
-			#convert to uppercase
-			ALL_EXT=$(echo $ALL_EXT | tr 'a-z' 'A-Z')
-			
-			READ_EXT=1
-			continue
-		fi
+        #skip comment and blank lines
+        case "$LINE" in \#*) continue ;; esac
+        [ -z "$LINE" ] && continue
+        
+        #read the extensions from file
+        if [[ "$READ_EXT" -eq 0 ]]; then
+            
+            ALL_EXT=$LINE
+            
+            #convert to uppercase
+            ALL_EXT=$(echo $ALL_EXT | tr 'a-z' 'A-Z')
+            
+            READ_EXT=1
+            continue
+        fi
 
-		#read the update time from file
-		if [[ "$READ_TIME" -eq 0 ]]; then
-			LINE=$(echo $LINE | tr 'A-Z' 'a-z')
-			
-			if [ "$LINE" == "none" ]; then
-				TIME_UPD=""
-			else
-				TIME_UPD="$LINE"
-			fi
-			
-			READ_TIME=1
-			continue
-		fi
+        #read the update time from file
+        if [[ "$READ_TIME" -eq 0 ]]; then
+            LINE=$(echo $LINE | tr 'A-Z' 'a-z')
+            
+            if [ "$LINE" == "none" ]; then
+                TIME_UPD=""
+            else
+                TIME_UPD="$LINE"
+            fi
+            
+            READ_TIME=1
+            continue
+        fi
 
-		#read the user from file
-		if [[ "$READ_USER" -eq 0 ]]; then
-			LINE=$(echo $LINE | tr 'A-Z' 'a-z')
-			
-			if [ "$LINE" == "none" ]; then
-				USER_OWN=""
-			else
-				USER_OWN="-user $LINE"
-			fi
-			
-			READ_USER=1
-			continue
-		fi
-		
-		#read the paths from file
-		RECURSIVE=$(echo $LINE | awk -F" " '{print $1}')
-		PATH_FILE=$(echo $LINE | awk -F" " '{print $2}')
-		
-		#delete last / if exists
-		PATH_FILE="${PATH_FILE%/}"
+        #read the user from file
+        if [[ "$READ_USER" -eq 0 ]]; then
+            LINE=$(echo $LINE | tr 'A-Z' 'a-z')
+            
+            if [ "$LINE" == "none" ]; then
+                USER_OWN=""
+            else
+                USER_OWN="-user $LINE"
+            fi
+            
+            READ_USER=1
+            continue
+        fi
+        
+        #read the paths from file
+        RECURSIVE=$(echo $LINE | awk -F" " '{print $1}')
+        PATH_FILE=$(echo $LINE | awk -F" " '{print $2}')
+        
+        #delete last / if exists
+        PATH_FILE="${PATH_FILE%/}"
 
-		if [[ "$RECURSIVE" -eq 0 ]]; then
-			#recursive find
-			RECURSIVE=""
-		else
-			#no recursive find
-			RECURSIVE="-maxdepth $RECURSIVE"
-		fi
-		
-		PARAMETERS="$PATH_FILE $RECURSIVE $TIME_UPD -type f $USER_OWN"
+        if [[ "$RECURSIVE" -eq 0 ]]; then
+            #recursive find
+            RECURSIVE=""
+        else
+            #no recursive find
+            RECURSIVE="-maxdepth $RECURSIVE"
+        fi
+        
+        PARAMETERS="$PATH_FILE $RECURSIVE $TIME_UPD -type f $USER_OWN"
 
-		find $PARAMETERS |
-		while read FICH_MEDIA
-		do
-			treat_files
-		done
+        find $PARAMETERS |
+        while read FICH_MEDIA
+        do
+            treat_files
+        done
 
-	done < $FICH_CONF
+    done < $FICH_CONF
 }
 
 
