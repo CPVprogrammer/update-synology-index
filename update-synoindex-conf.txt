@@ -1,0 +1,10 @@
+#extensions
+ASF AVI DIVX IMG ISO M1V M2P M2T M2TS M2V M4V MKV MOV MP4 MPEG4 MPE MPG MPG4 MTS QT RM TP TRP TS VOB WMV XVID
+#Modified time --> none or "command find time" --> 24 hours example = "-mtime 0" ----> 1 hour = "-mmin -60"
+none
+#user: none, root, transmission, ftp, etc.
+none
+#directories to treat --> 0 recursive, 1 no recursive
+1 /volume1
+1 /volume1
+1 /volume1
