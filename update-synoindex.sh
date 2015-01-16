@@ -7,7 +7,7 @@
 #
 # Usage: update-synoindex.sh  --> first for create config file
 #        change values of config/update-synoindex-conf.txt
-#		 update-synoindex.sh
+#		     update-synoindex.sh
 #
 # ---------------------------------------------------------------------
 # Copyright (C) 2015-01-16  CPVprogrammer
