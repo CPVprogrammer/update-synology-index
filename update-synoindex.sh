@@ -94,8 +94,11 @@ check_extension(){
 search_directory_DB(){
     PATH_MEDIA=${FICH_MEDIA%/*}
     PATH_MEDIA=$(echo $PATH_MEDIA | tr 'A-Z' 'a-z')
+    
+    #replace "'" with "\'"
+    PATH_MEDIA_SQL=${PATH_MEDIA//"'"/"\'"}
 
-    TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from directory where lower(path) like '%$PATH_MEDIA%'"`
+    TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from directory where lower(path) like '%$PATH_MEDIA_SQL%'"`
     
     return "$TOTAL"
 }
@@ -106,8 +109,11 @@ search_directory_DB(){
 #---------------------------------------------
 search_file_DB(){
     FICH_MEDIA=$(echo $FICH_MEDIA | tr 'A-Z' 'a-z')
+    
+    #replace "'" with "\'"
+    FICH_MEDIA_SQL=${FICH_MEDIA//"'"/"\'"}
 
-    TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from video where lower(path) like '%$FICH_MEDIA%'"`
+    TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from video where lower(path) like '%$FICH_MEDIA_SQL%'"`
     
     return "$TOTAL"
 }
@@ -117,10 +123,8 @@ search_file_DB(){
 #function to add directory to DB
 #---------------------------------------------
 add_directory_DB(){
-
     synoindex -A "$PATH_MEDIA"
-#echo "added directory to DB --> $PATH_MEDIA"
-    sleep 5
+    sleep 6
 }
 
 
@@ -128,9 +132,7 @@ add_directory_DB(){
 #function to add file to DB
 #---------------------------------------------
 add_file_DB(){
-
     synoindex -a "$FICH_MEDIA"
-#echo "added file to DB --> $FICH_MEDIA"
 }
 
 
