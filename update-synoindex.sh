@@ -32,7 +32,7 @@
 #function to set the environment
 #---------------------------------------------
 set_environment(){
-    ALL_EXT="ASF AVI DIVX IMG ISO M1V M2P M2T M2TS M2V M4V MKV MOV MP4 MPEG4 MPE MPG MPG4 MTS QT RM TP TRP TS VOB WMV XVID"
+    ALL_EXT="ASF AVI DIVX FLV IMG ISO M1V M2P M2T M2TS M2V M4V MKV MOV MP4 MPEG4 MPE MPG MPG4 MTS QT RM TP TRP TS VOB WMV XVID"
 
     CONFIG_DIR=$(dirname $0)"/config"
     
@@ -97,10 +97,29 @@ search_directory_DB(){
     
     #replace "'" with "\'"
     PATH_MEDIA_SQL=${PATH_MEDIA//"'"/"\'"}
+	TOTAL=0
+	FIRST=1
+	CREATE_DIR=0
+	
+	while : ; do
+		TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from directory where lower(path) like '%$PATH_MEDIA_SQL%'"`
 
-    TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from directory where lower(path) like '%$PATH_MEDIA_SQL%'"`
-    
-    return "$TOTAL"
+		if [ "$TOTAL" = 0 ]; then
+			if [ "$FIRST" = 1 ]; then
+				FIRST=0
+			else
+				PATH_MEDIA=${PATH_MEDIA%/*}
+			fi
+			CREATE_DIR=1
+		fi
+
+		PATH_MEDIA_SQL=${PATH_MEDIA_SQL%/*}
+		if [ -z $PATH_MEDIA_SQL ]; then
+			break
+		fi		
+	done
+
+    return "$CREATE_DIR"
 }
 
 
@@ -109,7 +128,7 @@ search_directory_DB(){
 #---------------------------------------------
 search_file_DB(){
     FICH_MEDIA=$(echo $FICH_MEDIA | tr 'A-Z' 'a-z')
-    
+
     #replace "'" with "\'"
     FICH_MEDIA_SQL=${FICH_MEDIA//"'"/"\'"}
 
@@ -124,7 +143,6 @@ search_file_DB(){
 #---------------------------------------------
 add_directory_DB(){
     synoindex -A "$PATH_MEDIA"
-    sleep 6
 }
 
 
@@ -140,12 +158,17 @@ add_file_DB(){
 #function to treat directories
 #---------------------------------------------
 treat_directories(){
+	CREATE_FILE=1
+	
     search_directory_DB
+	SEARCH_RETVAL=$?
     
-    SEARCH_RETVAL=$?
-    if [ "$SEARCH_RETVAL" == 0 ]; then
+    if [ "$SEARCH_RETVAL" == 1 ]; then
         add_directory_DB
+		CREATE_FILE=0
     fi
+	
+	return $CREATE_FILE
 }
 
 
@@ -163,7 +186,12 @@ treat_files(){
         
         if [ "$SEARCH_RETVAL" == 0 ]; then
             treat_directories
-            add_file_DB
+			
+			EXT_RETVAL=$?
+
+			if [ "$EXT_RETVAL" == 1 ]; then
+				add_file_DB
+			fi
         fi
     fi
 }
