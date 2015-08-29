@@ -26,6 +26,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
+# v1.00 first release
+# v1.01 corrected an issue with path when parents path not found in DB
+# v1.02 corrected a bug with path and filenames and added a log file
 
 
 #---------------------------------------------
@@ -39,8 +42,12 @@ set_environment(){
     if [[ ! -d "$CONFIG_DIR" ]]; then
         mkdir "$CONFIG_DIR"
     fi
-    
-    FICH_CONF="$CONFIG_DIR/update-synoindex-conf.txt"
+
+	SCRIPT_NAME=${0##*/}
+	SCRIPT_NAME=${SCRIPT_NAME%.*}
+	CONFIG_FILE=$SCRIPT_NAME"-conf.txt"
+
+	FICH_CONF="$CONFIG_DIR/$CONFIG_FILE"
 
     if [[ ! -f "$FICH_CONF" ]]; then
         #insert into file default values
@@ -49,6 +56,8 @@ $ALL_EXT
 #Modified time --> none or \"command find time\" --> 24 hours example = \"-mtime 0\" ----> 1 hour = \"-mmin -60\"
 none
 #user: none, root, transmission, ftp, etc.
+none
+#directory for log/filename --> none or path or path/filename
 none
 #directories to treat --> 0 recursive, 1 no recursive
 1 /volume1
@@ -61,7 +70,21 @@ none
     READ_EXT=0
     READ_TIME=0
     READ_USER=0
+	READ_LOG=0
 }
+
+
+#---------------------------------------------
+#function to log the execution of the script
+#---------------------------------------------
+log_this(){
+	if [ "$LOG_FILE" == "none" ]; then
+		echo $*
+	else
+		echo $* | tee -a $LOG_FILE
+	fi
+}
+
 
 #---------------------------------------------
 #function to extract the extension of a path
@@ -93,10 +116,10 @@ check_extension(){
 #---------------------------------------------
 search_directory_DB(){
     PATH_MEDIA=${FICH_MEDIA%/*}
-    PATH_MEDIA=$(echo $PATH_MEDIA | tr 'A-Z' 'a-z')
+    PATH_MEDIA_DB=$(echo $PATH_MEDIA | tr 'A-Z' 'a-z')
     
     #replace "'" with "\'"
-    PATH_MEDIA_SQL=${PATH_MEDIA//"'"/"\'"}
+    PATH_MEDIA_SQL=${PATH_MEDIA_DB//"'"/"\'"}
 	TOTAL=0
 	FIRST=1
 	CREATE_DIR=0
@@ -108,7 +131,7 @@ search_directory_DB(){
 			if [ "$FIRST" = 1 ]; then
 				FIRST=0
 			else
-				PATH_MEDIA=${PATH_MEDIA%/*}
+				PATH_MEDIA_DB=${PATH_MEDIA_DB%/*}
 			fi
 			CREATE_DIR=1
 		fi
@@ -127,13 +150,13 @@ search_directory_DB(){
 #function to check if file is in the DB
 #---------------------------------------------
 search_file_DB(){
-    FICH_MEDIA=$(echo $FICH_MEDIA | tr 'A-Z' 'a-z')
+    FICH_MEDIA_DB=$(echo $FICH_MEDIA | tr 'A-Z' 'a-z')
 
     #replace "'" with "\'"
-    FICH_MEDIA_SQL=${FICH_MEDIA//"'"/"\'"}
+    FICH_MEDIA_SQL=${FICH_MEDIA_DB//"'"/"\'"}
 
     TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from video where lower(path) like '%$FICH_MEDIA_SQL%'"`
-    
+
     return "$TOTAL"
 }
 
@@ -143,6 +166,7 @@ search_file_DB(){
 #---------------------------------------------
 add_directory_DB(){
     synoindex -A "$PATH_MEDIA"
+	log_this "added directory: $PATH_MEDIA to DB"
 }
 
 
@@ -151,6 +175,7 @@ add_directory_DB(){
 #---------------------------------------------
 add_file_DB(){
     synoindex -a "$FICH_MEDIA"
+	log_this "added file: $FICH_MEDIA to DB"
 }
 
 
@@ -247,12 +272,54 @@ treatment(){
             READ_USER=1
             continue
         fi
-        
+
+        #read the log path file
+        if [[ "$READ_LOG" -eq 0 ]]; then
+            LINE=$(echo $LINE | tr 'A-Z' 'a-z')
+
+            if [ "$LINE" == "none" ]; then
+                LOG_FILE="none"
+
+            else
+				#delete last / if exist
+				#LOG_FILE="${LOG_FILE%/}"
+				
+				#get directory name
+				DIRECTORY="${LINE%/*}"
+				
+				if [ -d "$DIRECTORY" ]; then
+
+					if [ "${LINE%/}" == "$DIRECTORY" ]; then
+						LOG_FILE="${LINE%/}/$SCRIPT_NAME.log"
+
+						if [ ! -f "$LOG_FILE" ]; then
+							> $LOG_FILE
+							echo "This is the logfile for the script: $SCRIPT_NAME" > $LOG_FILE
+						fi
+
+					else
+						LOG_FILE=$LINE
+						
+						if [ ! -f "$LINE" ]; then
+							> $LOG_FILE
+							echo "This is the logfile for the script: $SCRIPT_NAME" > $LOG_FILE						
+						fi
+					fi
+					
+				fi
+			fi
+
+			log_this "program executed at: " `date +"%Y-%m-%d %H:%M:%S`
+
+            READ_LOG=1
+            continue
+        fi
+
         #read the paths from file
         RECURSIVE=$(echo $LINE | awk -F" " '{print $1}')
         PATH_FILE=$(echo $LINE | awk -F" " '{print $2}')
         
-        #delete last / if exists
+        #delete last / if exist
         PATH_FILE="${PATH_FILE%/}"
 
         if [[ "$RECURSIVE" -eq 0 ]]; then
