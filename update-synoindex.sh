@@ -29,6 +29,7 @@
 # v1.00 first release
 # v1.01 corrected an issue with path when parents path not found in DB
 # v1.02 corrected a bug with path and filenames and added a log file
+# v1.03 corrected a bug with postgresql roles in query
 
 
 #---------------------------------------------
@@ -125,7 +126,7 @@ search_directory_DB(){
 	CREATE_DIR=0
 	
 	while : ; do
-		TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from directory where lower(path) like '%$PATH_MEDIA_SQL%'"`
+		TOTAL=`/usr/syno/pgsql/bin/psql mediaserver postgres -tA -c "select count(1) from directory where lower(path) like '%$PATH_MEDIA_SQL%'"`
 
 		if [ "$TOTAL" = 0 ]; then
 			if [ "$FIRST" = 1 ]; then
@@ -155,7 +156,7 @@ search_file_DB(){
     #replace "'" with "\'"
     FICH_MEDIA_SQL=${FICH_MEDIA_DB//"'"/"\'"}
 
-    TOTAL=`/usr/syno/pgsql/bin/psql mediaserver admin -tA -c "select count(1) from video where lower(path) like '%$FICH_MEDIA_SQL%'"`
+    TOTAL=`/usr/syno/pgsql/bin/psql mediaserver postgres -tA -c "select count(1) from video where lower(path) like '%$FICH_MEDIA_SQL%'"`
 
     return "$TOTAL"
 }
