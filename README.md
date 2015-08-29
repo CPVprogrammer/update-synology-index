@@ -9,7 +9,7 @@ Usage: update-synoindex.sh  --> first for create config file
        update-synoindex.sh
 
 Example of config file:
-for only mkv in the last hour for the user transmission in the path /volume1/video/movies recursive
+for only mkv in the last hour for the user transmission with log directory /volume1/video/movies/ in the path /volume1/video/movies recursive
 
 
 #extensions
@@ -18,6 +18,8 @@ MKV
 -mmin -60
 #user: none, root, transmission, ftp, etc.
 transmission
+#directory for log/filename --> none or path or path/filename
+/volume1/video/movies/
 #directories to treat --> 0 recursive, 1 no recursive
 0 /volume1/video/movies
 </pre>
