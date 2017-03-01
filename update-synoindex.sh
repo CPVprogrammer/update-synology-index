@@ -31,6 +31,7 @@
 # v1.02 corrected a bug with path and filenames and added a log file
 # v1.03 corrected a bug with postgresql roles in query
 # v1.04 corrected a bug with postgresql path for DSM 6.0
+# v1.05 corrected a bug with paths with spaces in config file
 
 
 #---------------------------------------------
@@ -45,12 +46,12 @@ set_environment(){
         mkdir "$CONFIG_DIR"
     fi
 
-	SCRIPT_NAME=${0##*/}
-	SCRIPT_NAME=${SCRIPT_NAME%.*}
-	CONFIG_FILE=$SCRIPT_NAME"-conf.txt"
-	PSQL_PATH=`which psql`
+    SCRIPT_NAME=${0##*/}
+    SCRIPT_NAME=${SCRIPT_NAME%.*}
+    CONFIG_FILE=$SCRIPT_NAME"-conf.txt"
+    PSQL_PATH=`which psql`
 
-	FICH_CONF="$CONFIG_DIR/$CONFIG_FILE"
+    FICH_CONF="$CONFIG_DIR/$CONFIG_FILE"
 
     if [[ ! -f "$FICH_CONF" ]]; then
         #insert into file default values
@@ -73,7 +74,7 @@ none
     READ_EXT=0
     READ_TIME=0
     READ_USER=0
-		READ_LOG=0
+    READ_LOG=0
 }
 
 
@@ -81,11 +82,11 @@ none
 #function to log the execution of the script
 #---------------------------------------------
 log_this(){
-	if [ "$LOG_FILE" == "none" ]; then
-		echo $*
-	else
-		echo $* | tee -a $LOG_FILE
-	fi
+    if [ "$LOG_FILE" == "none" ]; then
+        echo $*
+    else
+        echo $* | tee -a $LOG_FILE
+    fi
 }
 
 
@@ -119,31 +120,32 @@ check_extension(){
 #---------------------------------------------
 search_directory_DB(){
     PATH_MEDIA=${FICH_MEDIA%/*}
+    PATH_CREATE="$PATH_MEDIA"
     PATH_MEDIA_DB=$(echo $PATH_MEDIA | tr 'A-Z' 'a-z')
-    
+
     #replace "'" with "\'"
     PATH_MEDIA_SQL=${PATH_MEDIA_DB//"'"/"\'"}
-		TOTAL=0
-		FIRST=1
-		CREATE_DIR=0
-	
-	while : ; do
-		TOTAL=`$PSQL_PATH mediaserver postgres -tA -c "select count(1) from directory where lower(path) like '%$PATH_MEDIA_SQL%'"`
+    TOTAL=0
+    FIRST=1
+    CREATE_DIR=0
 
-		if [ "$TOTAL" = 0 ]; then
-			if [ "$FIRST" = 1 ]; then
-				FIRST=0
-			else
-				PATH_MEDIA_DB=${PATH_MEDIA_DB%/*}
-			fi
-			CREATE_DIR=1
-		fi
+    while : ; do
+        TOTAL=`$PSQL_PATH mediaserver postgres -tA -c "select count(1) from directory where lower(path) like '%$PATH_MEDIA_SQL%'"`
 
-		PATH_MEDIA_SQL=${PATH_MEDIA_SQL%/*}
-		if [ -z $PATH_MEDIA_SQL ]; then
-			break
-		fi		
-	done
+        if [ "$TOTAL" = 0 ]; then
+            if [ "$FIRST" = 1 ]; then
+                FIRST=0
+            else
+                PATH_CREATE=${PATH_CREATE%/*}
+            fi
+            CREATE_DIR=1
+        fi
+
+        PATH_MEDIA_SQL=${PATH_MEDIA_SQL%/*}
+        if [ -z "$PATH_MEDIA_SQL" ]; then
+            break
+        fi
+    done
 
     return "$CREATE_DIR"
 }
@@ -158,7 +160,7 @@ search_file_DB(){
     #replace "'" with "\'"
     FICH_MEDIA_SQL=${FICH_MEDIA_DB//"'"/"\'"}
 
-		TOTAL=`$PSQL_PATH mediaserver postgres -tA -c "select count(1) from video where lower(path) like '%$FICH_MEDIA_SQL%'"`
+    TOTAL=`$PSQL_PATH mediaserver postgres -tA -c "select count(1) from video where lower(path) like '%$FICH_MEDIA_SQL%'"`
 
     return "$TOTAL"
 }
@@ -168,8 +170,12 @@ search_file_DB(){
 #function to add directory to DB
 #---------------------------------------------
 add_directory_DB(){
-    synoindex -A "$PATH_MEDIA"
-	log_this "added directory: $PATH_MEDIA to DB"
+    if [ "$LAST_CREATED" != "$PATH_CREATE" ]; then
+        LAST_CREATED="$PATH_CREATE"
+
+        synoindex -A "$PATH_CREATE"
+        log_this "added directory: $PATH_CREATE to DB"
+    fi
 }
 
 
@@ -178,7 +184,7 @@ add_directory_DB(){
 #---------------------------------------------
 add_file_DB(){
     synoindex -a "$FICH_MEDIA"
-	log_this "added file: $FICH_MEDIA to DB"
+    log_this "added file: $FICH_MEDIA to DB"
 }
 
 
@@ -186,17 +192,17 @@ add_file_DB(){
 #function to treat directories
 #---------------------------------------------
 treat_directories(){
-	CREATE_FILE=1
-	
+    CREATE_FILE=1
+
     search_directory_DB
-	SEARCH_RETVAL=$?
+    SEARCH_RETVAL=$?
     
     if [ "$SEARCH_RETVAL" == 1 ]; then
         add_directory_DB
-		CREATE_FILE=0
+        CREATE_FILE=0
     fi
-	
-	return $CREATE_FILE
+
+    return $CREATE_FILE
 }
 
 
@@ -214,12 +220,12 @@ treat_files(){
         
         if [ "$SEARCH_RETVAL" == 0 ]; then
             treat_directories
-			
-			EXT_RETVAL=$?
 
-			if [ "$EXT_RETVAL" == 1 ]; then
-				add_file_DB
-			fi
+            EXT_RETVAL=$?
+
+            if [ "$EXT_RETVAL" == 1 ]; then
+                add_file_DB
+            fi
         fi
     fi
 }
@@ -284,36 +290,36 @@ treatment(){
                 LOG_FILE="none"
 
             else
-				#delete last / if exist
-				#LOG_FILE="${LOG_FILE%/}"
-				
-				#get directory name
-				DIRECTORY="${LINE%/*}"
-				
-				if [ -d "$DIRECTORY" ]; then
+                #delete last / if exist
+                #LOG_FILE="${LOG_FILE%/}"
 
-					if [ "${LINE%/}" == "$DIRECTORY" ]; then
-						LOG_FILE="${LINE%/}/$SCRIPT_NAME.log"
+                #get directory name
+                DIRECTORY="${LINE%/*}"
 
-						if [ ! -f "$LOG_FILE" ]; then
-							> $LOG_FILE
-							echo "This is the logfile for the script: $SCRIPT_NAME" > $LOG_FILE
-						fi
+                if [ -d "$DIRECTORY" ]; then
 
-					else
-						LOG_FILE=$LINE
-						
-						if [ ! -f "$LINE" ]; then
-							> $LOG_FILE
-							echo "This is the logfile for the script: $SCRIPT_NAME" > $LOG_FILE						
-						fi
-					fi
-					
-				fi
-			fi
+                    if [ "${LINE%/}" == "$DIRECTORY" ]; then
+                        LOG_FILE="${LINE%/}/$SCRIPT_NAME.log"
 
-			NOW=$(date +"%Y-%m-%d %H:%M:%S")
-			log_this "program executed at: " $NOW
+                        if [ ! -f "$LOG_FILE" ]; then
+                            > $LOG_FILE
+                            echo "This is the logfile for the script: $SCRIPT_NAME" > $LOG_FILE
+                        fi
+
+                    else
+                        LOG_FILE=$LINE
+
+                        if [ ! -f "$LINE" ]; then
+                            > $LOG_FILE
+                            echo "This is the logfile for the script: $SCRIPT_NAME" > $LOG_FILE
+                        fi
+                    fi
+
+                fi
+            fi
+
+            NOW=$(date +"%Y-%m-%d %H:%M:%S")
+            log_this "program executed at: " $NOW
 
             READ_LOG=1
             continue
@@ -321,8 +327,13 @@ treatment(){
 
         #read the paths from file
         RECURSIVE=$(echo $LINE | awk -F" " '{print $1}')
-        PATH_FILE=$(echo $LINE | awk -F" " '{print $2}')
-        
+        PATH_FILE=$(echo $LINE | awk '{print substr($0,2)}')
+
+        #remove leading spaces
+        shopt -s extglob
+        PATH_FILE="${PATH_FILE##*( )}"
+        shopt -u extglob
+
         #delete last / if exist
         PATH_FILE="${PATH_FILE%/}"
 
@@ -333,15 +344,16 @@ treatment(){
             #no recursive find
             RECURSIVE="-maxdepth $RECURSIVE"
         fi
-        
-        PARAMETERS="$PATH_FILE $RECURSIVE $TIME_UPD -type f $USER_OWN"
 
-        find $PARAMETERS |
-        while read FICH_MEDIA
+        IFS=$'\n'
+        PARAMETERS=$(find "$PATH_FILE" $RECURSIVE $TIME_UPD -type f $USER_OWN)
+
+        for FICH_MEDIA in $PARAMETERS
         do
             treat_files
         done
 
+        unset IFS
     done < $FICH_CONF
 }
 
