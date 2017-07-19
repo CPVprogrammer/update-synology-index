@@ -4,7 +4,7 @@ ASF AVI DIVX IMG ISO M1V M2P M2T M2TS M2V M4V MKV MOV MP4 MPEG4 MPE MPG MPG4 MTS
 none
 #user: none, root, transmission, ftp, etc.
 none
-#directory for log/filename --> none or path or path/filename
+#directory for log/filename --> none or path/filename
 none
 #directories to treat --> 0 recursive, 1 no recursive
 1 /volume1
