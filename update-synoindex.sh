@@ -32,6 +32,7 @@
 # v1.03 corrected a bug with postgresql roles in query
 # v1.04 corrected a bug with postgresql path for DSM 6.0
 # v1.05 corrected a bug with paths with spaces in config file
+# v1.06 corrected a bug with find parameters
 
 
 #---------------------------------------------
@@ -344,10 +345,12 @@ treatment(){
             #no recursive find
             RECURSIVE="-maxdepth $RECURSIVE"
         fi
+        
+        TYPEFIND="-type f"
+        FIND_PARAMETERS=($RECURSIVE $TIME_UPD $TYPEFIND $USER_OWN)
+        PARAMETERS=$(find "$PATH_FILE" "${FIND_PARAMETERS[@]}")
 
         IFS=$'\n'
-        PARAMETERS=$(find "$PATH_FILE" $RECURSIVE $TIME_UPD -type f $USER_OWN)
-
         for FICH_MEDIA in $PARAMETERS
         do
             treat_files
